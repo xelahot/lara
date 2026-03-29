@@ -90,6 +90,13 @@ struct FontPicker: View {
                         Text("Segoe UI")
                             .font(viewfont(resource: "segoeui", size: 17))
                     }
+                    
+                    Button {
+                        applyfont("QuickSand", label: "QuickSand")
+                    } label: {
+                        Text("QuickSand")
+                            .font(viewfont(resource: "QuickSand", size: 17))
+                    }
                 } header: {
                     Text("Fonts")
                 } footer: {
