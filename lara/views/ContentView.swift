@@ -13,7 +13,7 @@ struct ContentView: View {
     @ObservedObject private var mgr = laramgr.shared
     @State private var hasoffsets = haskernproc()
     @State private var showsettings = false
-    @State private var selectedmethod: method = .sbx
+    @State private var selectedmethod: method = .hybrid
     
     var body: some View {
         NavigationStack {
