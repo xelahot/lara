@@ -9,6 +9,7 @@ import SwiftUI
 import UIKit
 
 struct SettingsView: View {
+    @ObservedObject var mgr: laramgr
     @Binding var hasoffsets: Bool
     @State private var showresetalert: Bool = false
     @State private var downloadingkernelcache = false
@@ -117,6 +118,10 @@ struct SettingsView: View {
                             }
                         }
                         .disabled(downloadingkernelcache)
+                        
+                        Button("Fetch Kernelcache") {
+                            mgr.run()
+                        }
                     }
                     
                     Button {
@@ -243,6 +248,35 @@ struct SettingsView: View {
                     }
                     .onTapGesture {
                         if let url = URL(string: "https://github.com/jailbreakdotparty"),
+                           UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    
+                    HStack(alignment: .top) {
+                        AsyncImage(url: URL(string: "https://github.com/neonmodder123.png")) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            ProgressView()
+                        }
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                        
+                        VStack(alignment: .leading) {
+                            Text("neon")
+                                .font(.headline)
+                            
+                            Text("Made the respring script.")
+                                .font(.subheadline)
+                                .foregroundColor(Color.secondary)
+                        }
+                        
+                        Spacer()
+                    }
+                    .onTapGesture {
+                        if let url = URL(string: "https://github.com/neonmodder123"),
                            UIApplication.shared.canOpenURL(url) {
                             UIApplication.shared.open(url)
                         }

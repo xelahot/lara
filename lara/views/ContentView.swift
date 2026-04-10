@@ -327,7 +327,7 @@ struct ContentView: View {
                                     ZeroView(mgr: mgr)
                                 }
                                 
-                                NavigationLink("3 App Bypass (Broken?)") {
+                                NavigationLink("3 App Bypass") {
                                     AppsView(mgr: mgr)
                                 }
                                 
@@ -336,7 +336,7 @@ struct ContentView: View {
                                         PasscodeView(mgr: mgr)
                                     }
                                     
-                                    NavigationLink("3 App Bypass (Broken?)") {
+                                    NavigationLink("3 App Bypass") {
                                         AppsView(mgr: mgr)
                                     }
                                 }
@@ -385,7 +385,7 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showsettings) {
-            SettingsView(hasoffsets: $hasoffsets)
+            SettingsView(mgr: mgr, hasoffsets: $hasoffsets)
         }
         .onAppear {
             refreshSelectedMethod()

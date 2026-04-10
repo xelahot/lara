@@ -77,7 +77,6 @@ struct AppsView: View {
                     var value: [UInt8] = [1, 2, 3]
                     
                     let success = mgr.apfsown(path: bundlepath, uid: 501, gid: 501)
-                    
                     if !success {
                         mgr.logmsg("(sbx) failed to set ownership on: \(bundlepath)")
                     } else {
@@ -86,7 +85,6 @@ struct AppsView: View {
 
                     errno = 0
                     let rc = setxattr(bundlepath, testkey, &value, value.count, 0, 0)
-
                     if rc == 0 {
                         mgr.logmsg("(sbx) set xattr on: \(bundlepath)")
                         processed += 1
@@ -98,7 +96,6 @@ struct AppsView: View {
 
                     errno = 0
                     let size = getxattr(bundlepath, testkey, nil, 0, 0, 0)
-
                     if size >= 0 {
                         mgr.logmsg("(sbx) verified xattr on: \(bundlepath) size=\(size)")
                     } else {

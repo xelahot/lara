@@ -9,6 +9,7 @@ import Combine
 import Foundation
 import Darwin
 import notify
+import SafariServices
 
 final class laramgr: ObservableObject {
     @Published var log: String = ""
@@ -131,10 +132,16 @@ final class laramgr: ObservableObject {
             ds_kwrite64(kernbase, 0xDEADBEEF)
         }
     }
-    
+
     func respring() {
-        notify_post("com.apple.springboard.toggleLockScreen")
-        // killproc("springboard")
+        guard
+            let url = URL(string: "https://roooot.dev/respring.html"),
+            let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+            let rvc = scene.windows.first?.rootViewController
+        else { return }
+
+        let svc = SFSafariViewController(url: url)
+        rvc.present(svc, animated: true)
     }
     
     func vfsinit(completion: ((Bool) -> Void)? = nil) {
