@@ -365,6 +365,17 @@ struct ContentView: View {
                             mgr.panic()
                         }
                         .disabled(!mgr.dsready)
+                        
+                        Button("Test RemoteCall (SpringBoard)") {
+                            testRemoteCall(process: "SpringBoard")
+                        }
+                        .disabled(!mgr.dsready || mgr.remotecallrunning)
+                        
+                        if mgr.remotecallrunning {
+                            Button("Destroy RemoteCall") {
+                                mgr.destroyRemoteCall()
+                            }
+                        }
                     } header: {
                         Text("Other")
                     }
@@ -390,6 +401,19 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             refreshselectedmethod()
+        }
+    }
+
+    private func testRemoteCall(process: String) {
+        mgr.logmsg("Testing RemoteCall on \(process)...")
+        mgr.initRemoteCall(process: process, useMigBypass: false) { success in
+            if success {
+                mgr.logmsg("RemoteCall init succeeded!")
+                let pid = mgr.doRemoteCall(name: "getpid")
+                mgr.logmsg("Remote getpid() returned: \(pid)")
+            } else {
+                mgr.logmsg("RemoteCall init failed on \(process)")
+            }
         }
     }
 

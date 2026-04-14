@@ -433,4 +433,75 @@ final class laramgr: ObservableObject {
         print("changed owner of \(path) to \(uid):\(gid)!")
         return true
     }
+    
+    // MARK: - RemoteCall
+    
+    /// Initialize remote call on a target process
+    /// - Parameters:
+    ///   - process: The process name to target
+    ///   - useMigBypass: Whether to use MIG filter bypass (not yet implemented)
+    ///   - completion: Completion handler with success status
+    func initRemoteCall(process: String, useMigBypass: Bool = false, completion: ((Bool) -> Void)? = nil) {
+        guard dsready, !remotecallrunning else {
+            completion?(false)
+            return
+        }
+        
+        remotecallrunning = true
+        logmsg("initializing remote call on \(process)...")
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let result = init_remote_call(process, useMigBypass)
+            
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                let success = result == 0
+                if success {
+                    self.logmsg("remote call initialized on \(process)")
+                } else {
+                    self.logmsg("remote call init failed on \(process)")
+                    self.remotecallrunning = false
+                }
+                completion?(success)
+            }
+        }
+    }
+    
+    /// Destroy the current remote call session
+    func destroyRemoteCall() {
+        guard remotecallrunning else { return }
+        
+        logmsg("destroying remote call session...")
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            destroy_remote_call()
+            
+            DispatchQueue.main.async {
+                self?.remotecallrunning = false
+                self?.logmsg("remote call session destroyed")
+            }
+        }
+    }
+    
+    /// Execute a remote function call
+    /// - Parameters:
+    ///   - name: The function name to call
+    ///   - args: Up to 8 arguments (x0-x7)
+    ///   - timeout: Timeout in milliseconds
+    /// - Returns: The return value from the remote call
+    func doRemoteCall(name: String, args: [UInt64] = [], timeout: Int32 = 100) -> UInt64 {
+        guard remotecallrunning else { return 0 }
+        
+        // Pad args to 8 elements
+        var paddedArgs = args
+        while paddedArgs.count < 8 {
+            paddedArgs.append(0)
+        }
+        
+        return do_remote_call_stable(
+            timeout, name,
+            paddedArgs[0], paddedArgs[1], paddedArgs[2], paddedArgs[3],
+            paddedArgs[4], paddedArgs[5], paddedArgs[6], paddedArgs[7]
+        )
+    }
 }
