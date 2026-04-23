@@ -15,6 +15,7 @@
 #import "RemoteCall.h"
 
 long FindCacheDataOffset(const char *mgKey);
++ (BOOL)_hasHomeButton;
 
 void test(NSString *path);
 

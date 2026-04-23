@@ -107,7 +107,7 @@ struct EditorView: View {
                     Toggle("Stage Manager (iPad Only?)", isOn: mgkeybinding(["qeaj75wk3HF4DwQ8qbIi7g"]))
                         .disabled(UIDevice.current.userInterfaceIdiom != .pad)
                     if UIDevice._hasHomeButton() {
-                        Toggle("Tap to Wake (iPhone SE)", isOn: bindingForMGKeys(["yZf3GTRMGTuwSV/lD7Cagw"]))
+                        Toggle("Tap to Wake (iPhone SE)", isOn: mgkeybinding(["yZf3GTRMGTuwSV/lD7Cagw"]))
                     }
                 } header: {
                     Text("MobileGestalt")
