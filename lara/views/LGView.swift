@@ -1,0 +1,160 @@
+//
+//  LGView.swift
+//  lara
+//
+//  Created by jurre111 on 24.04.26.
+//
+
+// Most of the code is from Duy's SparseBox
+
+import SwiftUI
+
+struct LGView: View {
+    @ObservedObject private var mgr = laramgr.shared
+    @State private var gp: NSMutableDictionary
+    @State private var status: String?
+    @State private var alert: String?
+    @State private var valid: Bool = true
+    
+    private let path = "/var/mobile/Documents/GlobalPreferencesTest.plist" // "/var/Managed Preferences/.GlobalPreferences.plist"
+    private let oggpurl: URL
+
+    init() {
+        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        oggpurl = docs.appendingPathComponent("ogGlobalPreferences.plist")
+        let sysurl = URL(fileURLWithPath: path)
+        do {
+            if !FileManager.default.fileExists(atPath: oggpurl.path) {
+                try FileManager.default.copyItem(at: sysurl, to: oggpurl)
+            }
+            chmod(oggpurl.path, 0o644)
+            
+            _gp = State(initialValue: try NSMutableDictionary(contentsOf: URL(fileURLWithPath: path), error: ()))
+        } catch {
+            _mg = State(initialValue: [:])
+            _status = State(initialValue: "Failed to copy GlobalPreferences: \(error)")
+        }
+
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Toggle("Force Solarium Fallback", isOn: mgkeybinding("SolariumForceFallback"))
+                    Toggle("Disable Liquid Glass", isOn: mgkeybinding("com.apple.SwiftUI.DisableSolarium"))
+                    Toggle("Ignore Liquid Glass App Build Check", isOn: mgkeybinding("com.apple.SwiftUI.IgnoreSolariumLinkedOnCheck"))
+                    Toggle("Disable Liquid Glass on LS Clock", isOn: mgkeybinding("SBDisallowGlassTime"))
+                    Toggle("Disable Liquid Glass on Dock", isOn: mgkeybinding("SBDisableGlassDock"))
+                    Toggle("Disable Specular Motion", isOn: mgkeybinding("SBDisableSpecularEverywhereUsingLSSAssertion"))
+                    Toggle("Disable Outer Refraction", isOn: mgkeybinding("SolariumDisableOuterRefraction"))
+                    Toggle("Disable Solarium HDR", isOn: mgkeybinding("SolariumAllowHDR", default: true, enable: false))
+                } header: {
+                    Text("Liquid Glass")
+                } footer: {
+                    Text("Note: some tweaks may not work or cause instability.")
+                }
+                Section {
+                    HStack {
+                        Text("Status")
+                        
+                        Spacer()
+                        
+                        if valid {
+                            Text("valid!")
+                                .monospaced(true)
+                                .foregroundColor(.green)
+                        } else {
+                            Text("invalid.")
+                                .monospaced(true)
+                                .foregroundColor(.red)
+                        }
+                    }
+                    
+                    Button() {
+                        apply()
+                    } label: {
+                        Text("Apply")
+                    }
+                    .disabled(!valid)
+                } header: {
+                    Text("Apply")
+                } footer: {
+                    Text("Use at your own risk. Always keep a backup of \"/var/Managed Preferences/.GlobalPreferences.plist\" somewhere safe.")
+                }
+            }
+            .navigationTitle("Liquid Glass")
+            .alert("Status", isPresented: .constant(status != nil)) {
+                Button("OK") { status = nil }
+            } message: {
+                Text(status ?? "")
+            }
+            .alert("Done", isPresented: .constant(alert != nil)) {
+                Button("Cancel") { alert = nil }
+                Button("Respring") {
+                    mgr.respring()
+                }
+            } message: {
+                Text(alert ?? "uhh...")
+            }
+            .onAppear(perform: load)
+        }
+    }
+    
+    private func validate(_ dict: NSMutableDictionary) -> Bool {
+        return !gp.allKeys.isEmpty
+    }
+
+    private func load() {
+        do {
+            gp = try NSMutableDictionary(contentsOf: URL(fileURLWithPath: path), error: ())
+        } catch {
+            status = "Failed to load GlobalPreferences"
+        }
+    }
+
+    private func apply() {
+        do {
+            let data = try PropertyListSerialization.data(
+                fromPropertyList: gp,
+                format: .binary,
+                options: 0
+            )
+            
+            let result = laramgr.shared.lara_overwritefile(
+                target: path,
+                data: data
+            )
+            
+            if result.ok {
+                mgr.logmsg("overwrote GlobalPreferences.plist at \(path)")
+                alert = "Applied plist, respring to see changes."
+            } else {
+                status = "overwrite failed: \(result.message)"
+            }
+            
+        } catch {
+            status = "serialization failed: \(error.localizedDescription)"
+        }
+    }
+    
+    private func gpkeybinding<T: Equatable>(_ key: String, type: T.Type = Bool.self, default: T? = false, enable: T? = true) -> Binding<Bool> {
+        return Binding(
+            get: {
+                if let value = gp[keys.first!] as? T?, let enable {
+                    return value == enable
+                }
+                return false
+            },
+            set: { enabled in
+                if enabled {
+                    gp[key] = enable
+                } else {
+                    gp.removeObject(forKey: key)
+                }
+                
+                valid = validate(gp)
+            }
+        )
+    }
+}
