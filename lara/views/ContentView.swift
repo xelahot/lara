@@ -379,7 +379,7 @@ struct ContentView: View {
                                                 Label("DarkBoard", systemImage: "app.badge")
                                             }
                                         } header: {
-                                            Text("UI tweaks")
+                                            Text("UI Tweaks")
                                         }
                                         Section {
                                             NavigationLink {
