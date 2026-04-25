@@ -138,7 +138,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                 } header: {
-                    Text("File Manger App Management")
+                    Text("File Manager App Management")
                 } footer: {
                     Text("Change the way app folders get displayed in the file manager.")
                 }
