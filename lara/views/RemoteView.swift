@@ -123,16 +123,16 @@ struct RemoteView: View {
                 HStack {
                     Text("Corner Radius")
                     Spacer()
-                    Text(String(format: "%.1f", iconCornerRadius))
+                    Text(String(format: "%.1f", hsIconCornerRadius))
                         .foregroundColor(.secondary)
                         .monospacedDigit()
                 }
-                Slider(value: $iconCornerRadius, in: 0...100, step: 1)
+                Slider(value: $hsIconCornerRadius, in: 0...100, step: 1)
 
                 Button {
-                    run("Patch Icon Corner Radius \(Int(iconCornerRadius))") {
-                        let result = patch_icon_corner_radius(mgr.sbProc, iconCornerRadius)
-                        return "patch_icon_corner_radius(\(Int(iconCornerRadius))) -> \(result)"
+                    run("Patch Icon Corner Radius \(Int(hsIconCornerRadius))") {
+                        let result = patch_icon_corner_radius(mgr.sbProc, hsIconCornerRadius)
+                        return "patch_icon_corner_radius(\(Int(hsIconCornerRadius))) -> \(result)"
                     }
                 } label: {
                     Text("Apply Corner Radius")
