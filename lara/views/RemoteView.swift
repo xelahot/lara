@@ -23,6 +23,7 @@ struct RemoteView: View {
     @State private var customLastResult: String = ""
     @State private var hsRows: Int = 6
     @State private var hsColumns: Int = 4
+    @State private var hsIconCornerRadius: Double = 60.0
 
     private var dockMaxColumns: Int { rcdockunlimited ? 50 : 10 }
 
@@ -115,6 +116,26 @@ struct RemoteView: View {
                     }
                 } label: {
                     Text("Apply Dock Columns")
+                }
+            }
+
+            Section {
+                HStack {
+                    Text("Corner Radius")
+                    Spacer()
+                    Text(String(format: "%.1f", iconCornerRadius))
+                        .foregroundColor(.secondary)
+                        .monospacedDigit()
+                }
+                Slider(value: $iconCornerRadius, in: 0...100, step: 1)
+
+                Button {
+                    run("Patch Icon Corner Radius \(Int(iconCornerRadius))") {
+                        let result = patch_icon_corner_radius(mgr.sbProc, iconCornerRadius)
+                        return "patch_icon_corner_radius(\(Int(iconCornerRadius))) -> \(result)"
+                    }
+                } label: {
+                    Text("Apply Corner Radius")
                 }
             }
 
