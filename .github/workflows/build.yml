@@ -1,7 +1,6 @@
 name: build
 on:
   push:
-    branches: [ main ]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -49,7 +48,7 @@ jobs:
           name: release-ipa
           path: build/lara.ipa
   release:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     steps:
