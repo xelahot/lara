@@ -121,7 +121,7 @@ struct RemoteView: View {
 
             Section {
                 HStack {
-                    Text("Corner Radius")
+                    Text("Icons corner radius")
                     Spacer()
                     Text(String(format: "%.1f", hsIconCornerRadius))
                         .foregroundColor(.secondary)
@@ -135,7 +135,7 @@ struct RemoteView: View {
                         return "patch_icon_corner_radius(\(Int(hsIconCornerRadius))) -> \(result)"
                     }
                 } label: {
-                    Text("Apply Corner Radius")
+                    Text("Apply Icons Corner Radius")
                 }
             }
 
