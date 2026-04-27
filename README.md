@@ -78,7 +78,9 @@ If lara doesnt work on your device, and you want to help the project, please als
 - MobileGestalt Editor
 - 3 App Bypass
 - DirtyZero 2
+- Custom SpringBoard rows & columns
 - 5 App Dock
+- Custom SpringBoard icons radius
 - Status Bar Tweaks
 - Hide labels
 - Upside Down
