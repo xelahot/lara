@@ -24,7 +24,16 @@ jobs:
       - name: build
         run: |
           chmod +x scripts/build_ipa.sh
-          ./scripts/build_ipa.sh
+          ./scripts/build_ipa.sh || echo "BUILD_FAILED=1" >> $GITHUB_ENV
+      - name: upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log-${{ github.sha }}
+          path: build/xcodebuild.log
+      - name: fail if build failed
+        if: env.BUILD_FAILED == '1'
+        run: exit 1
       - name: upload build artifact
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
