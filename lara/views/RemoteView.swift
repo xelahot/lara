@@ -24,6 +24,7 @@ struct RemoteView: View {
     @State private var hsRows: Int = 6
     @State private var hsColumns: Int = 4
     @State private var hsIconCornerRadius: Double = 60.0
+    @State private var hsIconScale: Double = 1.0
 
     private var dockMaxColumns: Int { rcdockunlimited ? 50 : 10 }
 
@@ -136,6 +137,24 @@ struct RemoteView: View {
                     }
                 } label: {
                     Text("Apply Icons Corner Radius")
+                }
+            }
+
+            Section {
+                HStack {
+                    Text("Icon size")
+                    Spacer()
+                    Text(String(format: "%.2f", hsIconScale))
+                }
+                Slider(value: $hsIconScale, in: 0.5...2.0, step: 0.05)
+
+                Button("Apply Icon Size") {
+                    Task {
+                        await run("Patch Icon Size \(hsIconScale)") { completion in
+                            let result = patch_icon_size(mgr.sbProc, hsIconScale)
+                            completion(result ? "Done" : "Failed")
+                        }
+                    }
                 }
             }
 
