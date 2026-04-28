@@ -150,9 +150,9 @@ struct RemoteView: View {
 
                 Button("Apply Icon Size") {
                     Task {
-                        await run("Patch Icon Size \(hsIconScale)") { completion in
+                        await run("Patch Icon Size \(hsIconScale)") {
                             let result = patch_icon_size(mgr.sbProc, hsIconScale)
-                            completion(result ? "Done" : "Failed")
+                            return result ? "Done" : "Failed"
                         }
                     }
                 }
