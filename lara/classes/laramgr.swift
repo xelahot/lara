@@ -90,12 +90,12 @@ final class laramgr: ObservableObject {
                     self.dsfailed = false
                     self.kernbase = ds_get_kernel_base()
                     self.kernslide = ds_get_kernel_slide()
-                    self.logmsg("\n(ds) exploit success!")
-                    self.logmsg(String(format: "(ds) kernel_base:  0x%llx", self.kernbase))
-                    self.logmsg(String(format: "(ds) kernel_slide: 0x%llx\n", self.kernslide))
-                    globallogger.log("(ds) exploit success!")
-                    globallogger.log(String(format: "(ds) kernel_base:  0x%llx", self.kernbase))
-                    globallogger.log(String(format: "(ds) kernel_slide: 0x%llx", self.kernslide))
+                    //self.logmsg("\n(ds) exploit success!")
+                    //self.logmsg(String(format: "(ds) kernel_base:  0x%llx", self.kernbase))
+                    //self.logmsg(String(format: "(ds) kernel_slide: 0x%llx\n", self.kernslide))
+                    //globallogger.log("(ds) exploit success!")
+                    //globallogger.log(String(format: "(ds) kernel_base:  0x%llx", self.kernbase))
+                    //globallogger.log(String(format: "(ds) kernel_slide: 0x%llx", self.kernslide))
                     globallogger.divider()
                 } else {
                     self.dsfailed = true
@@ -177,7 +177,7 @@ final class laramgr: ObservableObject {
                 self.vfsready = (r == 0 && vfs_isready())
                 if self.vfsready {
                     self.vfsfailed = false
-                    self.logmsg("\nvfs ready!\n")
+                    //self.logmsg("\nvfs ready!\n")
                 } else {
                     self.vfsfailed = true
                     self.logmsg("\nvfs init failed.\n")
@@ -204,7 +204,7 @@ final class laramgr: ObservableObject {
                 self.sbxready = (r == 0)
                 if self.sbxready {
                     self.sbxfailed = false
-                    self.logmsg("\nsandbox escape ready!\n")
+                    //self.logmsg("\nsandbox escape ready!\n")
                 } else {
                     self.sbxfailed = true
                     self.logmsg("\nsandbox escape failed.\n")
@@ -233,7 +233,7 @@ final class laramgr: ObservableObject {
     
     func vfslistdir(path: String) -> [(name: String, isDir: Bool)]? {
         guard vfsready else {
-            logmsg(" listdir: not ready (\(path))")
+            //logmsg(" listdir: not ready (\(path))")
             return nil
         }
         var ptr: UnsafeMutablePointer<vfs_entry_t>?
@@ -253,7 +253,7 @@ final class laramgr: ObservableObject {
             }
             items.append((name, e.d_type == 4))
         }
-        logmsg(" listdir \(path) -> \(items.count)")
+        //logmsg(" listdir \(path) -> \(items.count)")
         return items.sorted { $0.0.lowercased() < $1.0.lowercased() }
     }
     
@@ -474,7 +474,7 @@ final class laramgr: ObservableObject {
         
         rcrunning = true
         rcLastError = nil
-        logmsg("initializing remote call on \(process)...")
+        //logmsg("initializing remote call on \(process)...")
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.sbProc = RemoteCall(process: process, useMigFilterBypass: migbypass)
@@ -483,7 +483,7 @@ final class laramgr: ObservableObject {
                 guard let self = self else { return }
                 let success = self.sbProc != nil
                 if success {
-                    self.logmsg("remote call initialized on \(process)")
+                    //self.logmsg("remote call initialized on \(process)")
                     self.rcLastError = nil
                     self.rcrunning = false
                     self.rcready = true
@@ -510,7 +510,7 @@ final class laramgr: ObservableObject {
         }
         
         rcrunning = true
-        logmsg("initializing remote call on \(process)...")
+        //logmsg("initializing remote call on \(process)...")
         
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             if process.withCString({ proc_find_by_name($0) == 0 }) {
@@ -525,7 +525,7 @@ final class laramgr: ObservableObject {
                 guard let self = self else { return }
                 let success = proc != nil
                 if success {
-                    self.logmsg("remote call initialized on \(process)")
+                    //self.logmsg("remote call initialized on \(process)")
                     self.rcrunning = false
                 } else {
                     let error = RemoteCall.lastInitError()
