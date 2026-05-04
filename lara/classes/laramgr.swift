@@ -471,13 +471,7 @@ final class laramgr: ObservableObject {
             completion?(false)
             return
         }
-
-        hs_set_log_callback { msg in
-            guard let msg else { return }
-            let s = String(cString: msg)
-            DispatchQueue.main.async { laramgr.shared.logmsg(s) }
-        }
-
+        
         rcrunning = true
         rcLastError = nil
         //logmsg("initializing remote call on \(process)...")
