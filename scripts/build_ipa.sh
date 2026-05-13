@@ -12,13 +12,17 @@ xcodebuild \
   -scheme lara \
   -configuration Debug \
   -sdk iphoneos \
-  -arch arm64e \
+  -destination "generic/platform=iOS" \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY="" \
   CODE_SIGN_ENTITLEMENTS="Config/lara.entitlements" \
   archive \
-  -archivePath "$PWD/build/lara.xcarchive" 2>&1 | tee build/xcodebuild.log | xcpretty
+  -archivePath "$PWD/build/lara.xcarchive" \
+  2>&1 | tee build/xcodebuild.log \
+       >(grep --line-buffered -E "(: error:|: warning:|error generated\.)" >&2) \
+       | xcpretty
+
 BUILD_EXIT=${PIPESTATUS[0]}
 if [ $BUILD_EXIT -ne 0 ]; then
   echo "=== LAST 50 ERROR LINES ==="
