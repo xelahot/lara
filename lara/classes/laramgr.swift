@@ -9,10 +9,12 @@ import Combine
 import Foundation
 import Darwin
 import notify
-import SafariServices
+import UIKit
+import WebKit
 
 final class laramgr: ObservableObject {
     @Published var log: String = ""
+    @Published var hasOffsets: Bool = false
     @Published var dsrunning: Bool = false
     @Published var dsready: Bool = false
     @Published var dsattempted: Bool = false
@@ -46,15 +48,27 @@ final class laramgr: ObservableObject {
     @Published var sbxfailed: Bool = false
     @Published var sbxrunning: Bool = false
     @Published var rcready: Bool = false
-    @Published var showRespringView: Bool = false
+    @Published var rcfailed: Bool = false
+    @Published var showrespring: Bool = false
+    
+    @Published var showLogs: Bool = false
     
     var sbProc: RemoteCall?
+    var ytProc = RemoteCall(process: "youtube", useMigFilterBypass: false)
     
     static let shared = laramgr()
     static let fontpath = "/System/Library/Fonts/Core/SFUI.ttf"
     static let italicfontpath = "/System/Library/Fonts/Core/SFUIItalic.ttf"
     static let monofontpath = "/System/Library/Fonts/Core/SFUIMono.ttf"
-    private init() {}
+    init() {}
+
+    struct AppInfo {
+        let executable: String
+        let displayName: String
+        let bundleName: String
+        let dataFolder: String
+        let bundleFolder: String
+    }
     
     func run(completion: ((Bool) -> Void)? = nil) {
         guard !dsrunning else { return }
@@ -148,17 +162,11 @@ final class laramgr: ObservableObject {
     }
     
     func respring() {
-        guard
-            let url = URL(string: "https://roooot.dev/respring.html"),
-            let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-            let rvc = scene.windows.first?.rootViewController
-        else { return }
-        
-        let svc = SFSafariViewController(url: url)
-        rvc.present(svc, animated: true)
+        showrespring = true
     }
     
     func vfsinit(completion: ((Bool) -> Void)? = nil) {
+        guard dsready, hasOffsets, !vfsrunning else { return }
         vfs_setlogcallback(laramgr.vfslogcallback)
         vfs_setprogresscallback { progress in
             DispatchQueue.main.async {
@@ -190,7 +198,7 @@ final class laramgr: ObservableObject {
     }
     
     func sbxescape(completion: ((Bool) -> Void)? = nil) {
-        guard dsready, !sbxrunning else { return }
+        guard dsready, hasOffsets, !sbxrunning else { return }
         sbxattempted = true
         sbxfailed = false
         sbxrunning = true
@@ -214,6 +222,7 @@ final class laramgr: ObservableObject {
             }
         }
     }
+    
     private static let sbxlogcallback: @convention(c) (UnsafePointer<CChar>?) -> Void = { msg in
         guard let msg = msg else { return }
         let s = String(cString: msg)
@@ -342,7 +351,7 @@ final class laramgr: ObservableObject {
     }
     
     @discardableResult
-    func lara_overwritefile(target: String, source: String) -> (ok: Bool, message: String) {
+    func lara_overwritefile(target: String, source: String, fallback_vfs: Bool = true) -> (ok: Bool, message: String) {
         guard FileManager.default.fileExists(atPath: source) else {
             return (false, "source file not found: \(source)")
         }
@@ -362,6 +371,10 @@ final class laramgr: ObservableObject {
         if result.ok {
             return result
         }
+
+        guard fallback_vfs else {
+            return result
+        }
         
         guard vfsready else {
             return (false, result.message + " | vfs not ready")
@@ -372,9 +385,13 @@ final class laramgr: ObservableObject {
     }
     
     @discardableResult
-    func lara_overwritefile(target: String, data: Data) -> (ok: Bool, message: String) {
+    func lara_overwritefile(target: String, data: Data, fallback_vfs: Bool = true) -> (ok: Bool, message: String) {
         let result = sbxready ? sbxoverwrite(path: target, data: data) : (false, "sbx not ready")
         if result.0 {
+            return result
+        }
+
+        guard fallback_vfs else {
             return result
         }
         
@@ -386,18 +403,35 @@ final class laramgr: ObservableObject {
         return ok ? (true, "vfs overwrite ok") : (false, result.1 + ", vfs overwrite failed")
     }
     
-    func vfszeropage(at path: String) -> Bool {
-        let result = path.withCString { cpath in
-            vfs_zeropage(cpath, 0)
+    func vfszeropage(at path: String, dumb: Bool) -> Bool {
+        if dumb {
+            guard vfsready else {
+                self.logmsg("(vfs) zerofile failed (vfs not ready)")
+                return false
+            }
+    
+            let ok = path.withCString { vfs_zerofile($0) } == 0
+
+            if !ok {
+                self.logmsg("(vfs) zerofile failed")
+                return false
+            }
+            
+            self.logmsg("(vfs) zeroed \(path)")
+            return true
+        } else {
+            let result = path.withCString { cpath in
+                vfs_zeropage(cpath, 0)
+            }
+
+            if result != 0 {
+                self.logmsg("(vfs) zeropage failed")
+                return false
+            }
+    
+            self.logmsg("(vfs) zeroed first page of \(path)")
+            return true
         }
-        
-        if result != 0 {
-            self.logmsg("(vfs) zeropage failed")
-            return false
-        }
-        
-        self.logmsg("(vfs) zeroed first page of \(path)")
-        return true
     }
     
     func sbxgettoken(pid: Int32) -> UInt64? {
@@ -445,7 +479,155 @@ final class laramgr: ObservableObject {
             }
         }
     }
+
+    // inspired by nugget from leminlimez
+    func PPHelper() -> Bool {
+        do {
+            let fm = FileManager.default
+            let dataFolder = "/private/var/mobile/Containers/Data/Application"
+            let bundleFolder = "/private/var/containers/Bundle/Application"
+            var bundleIDs = ["com.apple.PosterBoard"]
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                bundleIDs.append("com.apple.CarPlayWallpaper")
+            }
+            guard let appList = getAppList() else { return false}
+            var hashes: [String:String] = [:]
+            for bundleID in bundleIDs {
+                if let appInfo = appList[bundleID] {
+                    hashes[bundleID] = appInfo.dataFolder
+                } else {
+                    // this shouldn't happen
+                    logmsg("Could not find app with bundle ID \(bundleID).")
+                    return false
+                }
+            }
+            var PPbundleID = "com.leemin.Pocket-Poster"
+            for (bundleID, info) in appList {
+                if info.executable == "Pocket Poster" {
+                    PPbundleID = bundleID
+                    break
+                } else if info.executable == "LiveContainer" {
+                    PPbundleID = bundleID
+                }
+            }
+            if let PPHash = appList[PPbundleID]?.dataFolder {
+                for bundleID in hashes.keys {
+                    let fileName = "Nugget" + bundleID.replacingOccurrences(of: "com.apple.", with: "") + "Hash"
+                    let content = hashes[bundleID]!
+                    let filePath = dataFolder + "/" + PPHash + "/Documents/" + fileName
+                    try content.write(to: URL(fileURLWithPath: filePath), atomically: true, encoding: .utf8)
+                    logmsg("Wrote hash \(content) to \(filePath)")
+                }
+                return true
+            } else {
+                logmsg("Please install Pocket Poster before using Pocket Poster Helper. If you do have Pocket Poster installed, make sure you did not modify the bundle ID. If you installed Pocket Poster inside of LiveContainer, make sure you also did not modify the bundle ID of LiveContainer.")
+                return false
+            }
+        } catch {
+            logmsg("Error with Pocket Poster Helper: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    func getAppList() -> [String:AppInfo]? {
+        let fm = FileManager.default
+        let dataFolder = "/private/var/mobile/Containers/Data/Application"
+        let bundleFolder = "/private/var/containers/Bundle/Application"
+        var appList: [String:AppInfo] = [:]
+        do {
+            let appData = try fm.contentsOfDirectory(atPath: dataFolder)
+            for app in appData {
+                if let plist = NSDictionary(contentsOf: URL(fileURLWithPath: dataFolder + "/" + app + "/.com.apple.mobile_container_manager.metadata.plist")),
+                    let bundleID = plist["MCMMetadataIdentifier"] as? String {
+                    appList[bundleID] = AppInfo(executable: "", displayName: "", bundleName: "", dataFolder: app, bundleFolder: "")
+                }
+            }
+
+            let appBundles = try fm.contentsOfDirectory(atPath: bundleFolder)
+            for app in appBundles {
+                let appPath = bundleFolder + "/" + app
+                let contents = try fm.contentsOfDirectory(atPath: appPath)
+                for item in contents {
+                    if item.hasSuffix(".app") {
+                        if let plist = NSDictionary(contentsOf: URL(fileURLWithPath: appPath + "/" + item + "/Info.plist")),
+                            let bundleID = plist["CFBundleIdentifier"] as? String {
+                            let executable = plist["CFBundleExecutable"] as? String ?? ""
+                            let displayName = plist["CFBundleDisplayName"] as? String ?? ""
+                            let bundleName = plist["CFBundleName"] as? String ?? ""
+                            let dataFolderID = appList[bundleID]?.dataFolder ?? ""
+                            let appInfo = AppInfo(executable: executable, displayName: displayName, bundleName: bundleName, dataFolder: dataFolderID, bundleFolder: app)
+                            appList[bundleID] = appInfo
+                        }
+                        break
+                    }
+                }
+
+            }
+        } catch {
+            logmsg("Error getting app list: \(error.localizedDescription)")
+            return nil
+        }
+        return appList
+    }
     
+    func setplistvalue(path: String, key: (key: String, value: Any?), force: Bool = false) -> (ok: Bool, message: String) {
+        do {
+            let fm = FileManager.default
+            var dict = NSMutableDictionary()
+            if !fm.fileExists(atPath: path) {
+                if !force { return (false, "file at \(path) does not exist or couldn't be found") }
+            } else {
+                if let dictfromplist = NSMutableDictionary(contentsOf: URL(fileURLWithPath: path)) {
+                    dict = dictfromplist
+                } else {
+                    return (false, "could not convert plist at \(path) to readable data")
+                }
+            }
+            if let value = key.value {
+                dict[key.key] = value
+            } else {
+                dict.removeObject(forKey: key.key)
+            }
+            let data = try PropertyListSerialization.data(
+                fromPropertyList: dict,
+                format: .binary,
+                options: 0
+            )
+            let result = self.lara_overwritefile(
+                target: path,
+                data: data
+            )
+            if result.ok {
+                return (true, "overwrote plist at path \(path)")
+            } else {
+                return(false, "overwrite failed: \(result.message)")
+            }
+        } catch {
+            return (false, "an error occurred: \(error)")
+        }
+    }
+
+    func getplistvalue(path: String, key: String) -> (ok: Bool, message: String, value: Any?) {
+        do {
+            let fm = FileManager.default
+            if fm.fileExists(atPath: path) {
+                if let dict = NSDictionary(contentsOf: URL(fileURLWithPath: path)) {
+                    if let value = dict[key] {
+                        return (true, "success", value)
+                    } else {
+                        return (false, "key \(key) not found", nil)
+                    }
+                } else {
+                    return(false, "could not convert plist at \(path) to readable data", nil)
+                }
+            } else {
+                return (false, "file at \(path) does not exist or couldn't be found", nil)
+            }
+        } catch {
+            return (false, "an error occurred: \(error)", nil)
+        }
+    }
+
     @discardableResult
     func apfsown(path: String, uid: UInt32, gid: UInt32) -> Bool {
         if !isapfs(path) {
